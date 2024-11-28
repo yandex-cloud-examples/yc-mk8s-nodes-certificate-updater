@@ -21,7 +21,7 @@ metadata:
   namespace: certificate-updater
   labels:
     k8s-app: certificate-updater
-    version: 1v
+    version: 2v
 spec:
   selector:
     matchLabels:
@@ -56,8 +56,15 @@ spec:
                     echo "Restarting containerd and dockerd"
                     ps -x -o pid= -o comm= | awk '$2 ~ "^(containerd|dockerd)$" { print $1 }' | xargs kill
                     #systemd will get them back less than a minute
+
                 else
                   echo "Doing Nothing as no certs has not been changed"
+                fi
+                taint="state=certification-updater:NoSchedule"
+                res=$(/mnt/kube-tools/kubectl describe node $NODE_NAME | grep $taint)
+                if [ -n "$res" ]; then
+                        echo "Disable the state taint to allow scheduling the app pods"
+                        /mnt/kube-tools/kubectl taint node $NODE_NAME state=certification-updater:NoSchedule-
                 fi
               sleep 60                
             done
@@ -82,6 +89,13 @@ spec:
           readOnly: true
         - name: ca-cert
           mountPath: /usr/share/ca-certificates
+        - name: kube-tools
+          mountPath: /mnt/kube-tools
+        env:
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
       volumes:
       - name: secret
         secret:
@@ -102,3 +116,14 @@ spec:
         hostPath:
           path: /etc/
           type: Directory
+      - name: kube-tools
+        hostPath:
+          path: /home/kubernetes/bin/
+          type: Directory
+      tolerations:
+        - key: "state"
+          operator: "Equal"
+          value: "certification-phase"
+          effect: "NoSchedule"
+      hostNetwork: true
+      serviceAccountName: certificate-updater-sa

@@ -6,10 +6,16 @@ DaemonSet будет выполнять следующее:
 1. При помощи bash скрипта постояннo проверять наличие нужных CA сертификатов на нодах.
 2. В случае, если их нет, копировать их из секрета и обновлять сертификаты.
 3. Перезагружать containerd и dockerd.
+4. Отключать блокировку ноды после обновления сертификатов 
 
 DaemonSet работает с нодами, использующими Docker runtime и Containerd runtime.
 
 ## Как запустить в общем случае
+
+Для корректной работы необходимо при создании кластера в консоли добавить taint-политики узла для блокировки ноды до окончания процесса обновления сертификатов.
+```
+Taint-политики узла: state=certification-updater:NoSchedule
+``` 
 
 1) Создать namespace для работы daemonSet-а в целях изоляции его работы:
 ```
@@ -22,7 +28,12 @@ kubectl create secret generic crt --from-file=num1.crt --from-file=num2.crt --fr
 
 Важно, что daemonSet ссылается на сертификат с именем crt.
 
-3) Создать daemonSet:
+3) Создать service account для работы daemonSet-а для снятия блокировки нод:
+```
+kubectl apply -f certificate-updater-sa.yaml
+```
+
+4) Создать daemonSet:
 ```
 kubectl apply -f certificate-updater-ds.yaml
 ```
