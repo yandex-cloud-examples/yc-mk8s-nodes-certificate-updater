@@ -14,7 +14,7 @@ DaemonSet работает с нодами, использующими Docker ru
 
 Для корректной работы необходимо при создании кластера в консоли добавить taint-политики узла для блокировки ноды до окончания процесса обновления сертификатов.
 ```
-Taint-политики узла: state=certification-updater:NoSchedule
+Taint-политики узла: state=certificate-updater:NoSchedule
 ``` 
 
 1) Создать namespace для работы daemonSet-а в целях изоляции его работы:

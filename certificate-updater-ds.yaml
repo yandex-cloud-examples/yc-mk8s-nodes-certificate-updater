@@ -56,15 +56,14 @@ spec:
                     echo "Restarting containerd and dockerd"
                     ps -x -o pid= -o comm= | awk '$2 ~ "^(containerd|dockerd)$" { print $1 }' | xargs kill
                     #systemd will get them back less than a minute
-
                 else
                   echo "Doing Nothing as no certs has not been changed"
                 fi
-                taint="state=certification-updater:NoSchedule"
+                taint="state=certificate-updater:NoSchedule"
                 res=$(/mnt/kube-tools/kubectl describe node $NODE_NAME | grep $taint)
                 if [ -n "$res" ]; then
                         echo "Disable the state taint to allow scheduling the app pods"
-                        /mnt/kube-tools/kubectl taint node $NODE_NAME state=certification-updater:NoSchedule-
+                        /mnt/kube-tools/kubectl taint node $NODE_NAME $taint-
                 fi
               sleep 60                
             done
@@ -123,7 +122,7 @@ spec:
       tolerations:
         - key: "state"
           operator: "Equal"
-          value: "certification-phase"
+          value: "certificate-updater"
           effect: "NoSchedule"
       hostNetwork: true
       serviceAccountName: certificate-updater-sa
