@@ -12,7 +12,8 @@ spec:
     - Ingress
     - Egress
   ingress: []
-  egress:  []
+  egress:
+    - {}
 ---
 apiVersion: "apps/v1"
 kind: DaemonSet
@@ -124,5 +125,4 @@ spec:
           operator: "Equal"
           value: "certificate-updater"
           effect: "NoSchedule"
-      hostNetwork: true
       serviceAccountName: certificate-updater-sa
