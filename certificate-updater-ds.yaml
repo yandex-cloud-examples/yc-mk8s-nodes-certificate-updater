@@ -12,7 +12,8 @@ spec:
     - Ingress
     - Egress
   ingress: []
-  egress:  []
+  egress:
+    - {}
 ---
 apiVersion: "apps/v1"
 kind: DaemonSet
@@ -21,7 +22,7 @@ metadata:
   namespace: certificate-updater
   labels:
     k8s-app: certificate-updater
-    version: 1v
+    version: 2v
 spec:
   selector:
     matchLabels:
@@ -59,6 +60,12 @@ spec:
                 else
                   echo "Doing Nothing as no certs has not been changed"
                 fi
+                taint="state=certificate-updater:NoSchedule"
+                res=$(/mnt/kube-tools/kubectl describe node $NODE_NAME | grep $taint)
+                if [ -n "$res" ]; then
+                        echo "Disable the state taint to allow scheduling the app pods"
+                        /mnt/kube-tools/kubectl taint node $NODE_NAME $taint-
+                fi
               sleep 60                
             done
         imagePullPolicy: Never
@@ -82,6 +89,13 @@ spec:
           readOnly: true
         - name: ca-cert
           mountPath: /usr/share/ca-certificates
+        - name: kube-tools
+          mountPath: /mnt/kube-tools
+        env:
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
       volumes:
       - name: secret
         secret:
@@ -102,3 +116,13 @@ spec:
         hostPath:
           path: /etc/
           type: Directory
+      - name: kube-tools
+        hostPath:
+          path: /home/kubernetes/bin/
+          type: Directory
+      tolerations:
+        - key: "state"
+          operator: "Equal"
+          value: "certificate-updater"
+          effect: "NoSchedule"
+      serviceAccountName: certificate-updater-sa
