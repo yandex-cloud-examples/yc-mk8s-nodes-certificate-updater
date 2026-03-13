@@ -41,6 +41,8 @@ spec:
           - sh
           - -c
           - |
+            apt-get update;
+            apt-get install original-awk;
             while true; do
               diff -x '.*' -r /mnt/user-cert-path/ /usr/local/share/ca-certificates
               if [ $? -ne 0 ];
